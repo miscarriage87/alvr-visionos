@@ -230,6 +230,39 @@ public struct VideoOptimizationConfig: Codable, Equatable {
     public var targetEyeHeight: UInt32
     public var targetRefreshRate: Float
 
+    public init(
+        codec: VideoCodec = .h265,
+        use10BitEncodingServer: Bool = true,
+        targetMaxBitrateMbps: Int = 70,
+        nvencPreset: NvencPreset = .p5_slow,
+        nvencTuningPreset: NvencTuning = .ultraLowLatency,
+        nvencMultiPass: NvencMultiPassMode = .quarterRes,
+        rateControlMode: RateControlMode = .vbr,
+        adaptiveQuantizationMode: AdaptiveQuantizationMode = .spatial,
+        dynamicBitrate: DynamicBitrateConfig = .defaultHLAlyxOptimized,
+        sharpeningStrength: Float = 0.20,
+        encodingGamma: Float = 2.2,
+        enableHDRServer: Bool = true,
+        targetEyeWidth: UInt32 = 2880,
+        targetEyeHeight: UInt32 = 2880,
+        targetRefreshRate: Float = 90.0
+    ) {
+        self.codec = codec
+        self.use10BitEncodingServer = use10BitEncodingServer
+        self.targetMaxBitrateMbps = targetMaxBitrateMbps
+        self.nvencPreset = nvencPreset
+        self.nvencTuningPreset = nvencTuningPreset
+        self.nvencMultiPass = nvencMultiPass
+        self.rateControlMode = rateControlMode
+        self.adaptiveQuantizationMode = adaptiveQuantizationMode
+        self.dynamicBitrate = dynamicBitrate
+        self.sharpeningStrength = sharpeningStrength
+        self.encodingGamma = encodingGamma
+        self.enableHDRServer = enableHDRServer
+        self.targetEyeWidth = targetEyeWidth
+        self.targetEyeHeight = targetEyeHeight
+        self.targetRefreshRate = targetRefreshRate
+    }
 
     public enum VideoCodec: String, Codable, CaseIterable, Equatable {
         case h265 = "H.265 (HEVC)"
@@ -279,30 +312,26 @@ public struct VideoOptimizationConfig: Codable, Equatable {
         public var sceneComplexityMaxThreshold: Float
         public var bitrateAdjustmentSpeedFactor: Float
 
-        public static let defaultHLAlyxOptimized = DynamicBitrateConfig(
-            enabled: true, baseBitrateMbps: 45, maxBoostBitrateMbps: 68,
-            sceneComplexityMinThreshold: 0.3, sceneComplexityMaxThreshold: 0.8,
-            bitrateAdjustmentSpeedFactor: 0.5
-        )
+        public init(
+            enabled: Bool = true,
+            baseBitrateMbps: Int = 45,
+            maxBoostBitrateMbps: Int = 68,
+            sceneComplexityMinThreshold: Float = 0.3,
+            sceneComplexityMaxThreshold: Float = 0.8,
+            bitrateAdjustmentSpeedFactor: Float = 0.5
+        ) {
+            self.enabled = enabled
+            self.baseBitrateMbps = baseBitrateMbps
+            self.maxBoostBitrateMbps = maxBoostBitrateMbps
+            self.sceneComplexityMinThreshold = sceneComplexityMinThreshold
+            self.sceneComplexityMaxThreshold = sceneComplexityMaxThreshold
+            self.bitrateAdjustmentSpeedFactor = bitrateAdjustmentSpeedFactor
+        }
+        
+        public static let defaultHLAlyxOptimized = DynamicBitrateConfig()
     }
 
-    public static let defaultOptimized = VideoOptimizationConfig(
-        codec: .h265,
-        use10BitEncodingServer: true,
-        targetMaxBitrateMbps: 70,
-        nvencPreset: .p5_slow,
-        nvencTuningPreset: .ultraLowLatency,
-        nvencMultiPass: .quarterRes,
-        rateControlMode: .vbr,
-        adaptiveQuantizationMode: .spatial,
-        dynamicBitrate: .defaultHLAlyxOptimized,
-        sharpeningStrength: 0.20,
-        encodingGamma: 2.2, // sRGB like gamma often preferred for game content
-        enableHDRServer: true,
-        targetEyeWidth: 2880, // Common high-res target, AVP is higher but SteamVR scales
-        targetEyeHeight: 2880,
-        targetRefreshRate: 90.0
-    )
+    public static let defaultOptimized = VideoOptimizationConfig()
 }
 
 // MARK: - 2. Network Protocol Enhancements
@@ -314,20 +343,29 @@ public struct NetworkOptimizationConfig: Codable, Equatable {
     public var adaptiveQoSEnabled: Bool
     public var qosCheckIntervalSeconds: Int
 
+    public init(
+        cloudStreamingExtraLatencyMs: Int = 25,
+        prioritizeVideoData: Bool = true,
+        packetLossRecoveryMode: CloudPacketLossRecoveryMode = .balancedFecRetransmission,
+        fecPercentage: Int = 8,
+        adaptiveQoSEnabled: Bool = false,
+        qosCheckIntervalSeconds: Int = 5
+    ) {
+        self.cloudStreamingExtraLatencyMs = cloudStreamingExtraLatencyMs
+        self.prioritizeVideoData = prioritizeVideoData
+        self.packetLossRecoveryMode = packetLossRecoveryMode
+        self.fecPercentage = fecPercentage
+        self.adaptiveQoSEnabled = adaptiveQoSEnabled
+        self.qosCheckIntervalSeconds = qosCheckIntervalSeconds
+    }
+
     public enum CloudPacketLossRecoveryMode: String, Codable, CaseIterable, Equatable {
         case aggressiveRetransmission = "Aggressive Retransmission"
         case balancedFecRetransmission = "Balanced FEC + Retransmission"
         case robustFec = "Robust FEC"
     }
 
-    public static let defaultOptimized = NetworkOptimizationConfig(
-        cloudStreamingExtraLatencyMs: 25, // Adjusted estimate
-        prioritizeVideoData: true,
-        packetLossRecoveryMode: .balancedFecRetransmission,
-        fecPercentage: 8,
-        adaptiveQoSEnabled: false, // Client-side QoS is complex, disable by default
-        qosCheckIntervalSeconds: 5
-    )
+    public static let defaultOptimized = NetworkOptimizationConfig()
 }
 
 // MARK: - 3. Eye Tracking Foveated Rendering
@@ -339,10 +377,40 @@ public struct EyeTrackedFoveationConfig: Codable, Equatable {
     public var performanceTargetFps: Int
     public var edgeSmoothingLevel: FoveationEdgeSmoothing // This is often a client-side shader effect
 
+    public init(
+        enabled: Bool = true,
+        foveationLayers: [FoveationLayer] = [
+            FoveationLayer(qualityFactor: 1.0, radiusDegrees: 22.0, transitionDegrees: 7.0),
+            FoveationLayer(qualityFactor: 0.55, radiusDegrees: 42.0, transitionDegrees: 10.0),
+            FoveationLayer(qualityFactor: 0.20, radiusDegrees: 0.0, transitionDegrees: 0.0)
+        ],
+        dynamicAdjustmentEnabled: Bool = true,
+        gazeMovementSensitivity: Float = 0.75,
+        performanceTargetFps: Int = 87,
+        edgeSmoothingLevel: FoveationEdgeSmoothing = .medium
+    ) {
+        self.enabled = enabled
+        self.foveationLayers = foveationLayers
+        self.dynamicAdjustmentEnabled = dynamicAdjustmentEnabled
+        self.gazeMovementSensitivity = gazeMovementSensitivity
+        self.performanceTargetFps = performanceTargetFps
+        self.edgeSmoothingLevel = edgeSmoothingLevel
+    }
+
     public struct FoveationLayer: Codable, Equatable {
         public var qualityFactor: Float // Maps to 1.0 / edge_ratio for server
         public var radiusDegrees: Float // Used to calculate center_size for server
         public var transitionDegrees: Float // Influences perception, not direct server param
+        
+        public init(
+            qualityFactor: Float,
+            radiusDegrees: Float,
+            transitionDegrees: Float
+        ) {
+            self.qualityFactor = qualityFactor
+            self.radiusDegrees = radiusDegrees
+            self.transitionDegrees = transitionDegrees
+        }
     }
     
     public enum FoveationEdgeSmoothing: String, Codable, CaseIterable, Equatable {
@@ -352,18 +420,7 @@ public struct EyeTrackedFoveationConfig: Codable, Equatable {
         case high = "High"
     }
 
-    public static let defaultOptimized = EyeTrackedFoveationConfig(
-        enabled: true,
-        foveationLayers: [
-            FoveationLayer(qualityFactor: 1.0, radiusDegrees: 22.0, transitionDegrees: 7.0),
-            FoveationLayer(qualityFactor: 0.55, radiusDegrees: 42.0, transitionDegrees: 10.0),
-            FoveationLayer(qualityFactor: 0.20, radiusDegrees: 0.0, transitionDegrees: 0.0)
-        ],
-        dynamicAdjustmentEnabled: true,
-        gazeMovementSensitivity: 0.75,
-        performanceTargetFps: 87,
-        edgeSmoothingLevel: .medium
-    )
+    public static let defaultOptimized = EyeTrackedFoveationConfig()
 }
 
 // MARK: - 4. Half-Life Alyx Specific Optimizations
@@ -381,13 +438,35 @@ public struct HalfLifeAlyxProfile: Codable, Equatable {
     public var hdrPeakLuminanceNits: Float
     public var hdrPaperWhiteNits: Float
 
-    public static let defaultOptimized = HalfLifeAlyxProfile(
-        enabled: true, adaptToDarkScenes: true, darkSceneLuminanceThreshold: 0.12,
-        darkSceneBitrateBoostFactor: 1.30, darkSceneContrastEnhancement: 0.05,
-        motionAdaptiveQualityEnabled: true, highMotionSpeedThreshold: 2.5,
-        qualityReductionFactorHighMotion: 0.80, qualityIncreaseFactorLowMotion: 1.0, // Less aggressive increase
-        optimizeHdrTonemapping: true, hdrPeakLuminanceNits: 1200.0, hdrPaperWhiteNits: 220.0
-    )
+    public init(
+        enabled: Bool = true,
+        adaptToDarkScenes: Bool = true,
+        darkSceneLuminanceThreshold: Float = 0.12,
+        darkSceneBitrateBoostFactor: Float = 1.30,
+        darkSceneContrastEnhancement: Float = 0.05,
+        motionAdaptiveQualityEnabled: Bool = true,
+        highMotionSpeedThreshold: Float = 2.5,
+        qualityReductionFactorHighMotion: Float = 0.80,
+        qualityIncreaseFactorLowMotion: Float = 1.0,
+        optimizeHdrTonemapping: Bool = true,
+        hdrPeakLuminanceNits: Float = 1200.0,
+        hdrPaperWhiteNits: Float = 220.0
+    ) {
+        self.enabled = enabled
+        self.adaptToDarkScenes = adaptToDarkScenes
+        self.darkSceneLuminanceThreshold = darkSceneLuminanceThreshold
+        self.darkSceneBitrateBoostFactor = darkSceneBitrateBoostFactor
+        self.darkSceneContrastEnhancement = darkSceneContrastEnhancement
+        self.motionAdaptiveQualityEnabled = motionAdaptiveQualityEnabled
+        self.highMotionSpeedThreshold = highMotionSpeedThreshold
+        self.qualityReductionFactorHighMotion = qualityReductionFactorHighMotion
+        self.qualityIncreaseFactorLowMotion = qualityIncreaseFactorLowMotion
+        self.optimizeHdrTonemapping = optimizeHdrTonemapping
+        self.hdrPeakLuminanceNits = hdrPeakLuminanceNits
+        self.hdrPaperWhiteNits = hdrPaperWhiteNits
+    }
+
+    public static let defaultOptimized = HalfLifeAlyxProfile()
 }
 
 // MARK: - 5. Latency Reduction Techniques
@@ -397,17 +476,24 @@ public struct LatencyReductionConfig: Codable, Equatable {
     public var atwMode: AsynchronousTimewarpMode
     public var cloudInputPredictionStrength: Float
 
+    public init(
+        enablePredictiveFrameInterpolation: Bool = true,
+        interpolationMaxPredictedFrames: Int = 1,
+        atwMode: AsynchronousTimewarpMode = .alvrEnhancedPrediction,
+        cloudInputPredictionStrength: Float = 0.25
+    ) {
+        self.enablePredictiveFrameInterpolation = enablePredictiveFrameInterpolation
+        self.interpolationMaxPredictedFrames = interpolationMaxPredictedFrames
+        self.atwMode = atwMode
+        self.cloudInputPredictionStrength = cloudInputPredictionStrength
+    }
+
     public enum AsynchronousTimewarpMode: String, Codable, CaseIterable, Equatable {
         case visionOSNative = "VisionOS Native"
         case alvrEnhancedPrediction = "ALVR Enhanced Prediction"
     }
 
-    public static let defaultOptimized = LatencyReductionConfig(
-        enablePredictiveFrameInterpolation: true,
-        interpolationMaxPredictedFrames: 1, // Less aggressive interpolation
-        atwMode: .alvrEnhancedPrediction,
-        cloudInputPredictionStrength: 0.25
-    )
+    public static let defaultOptimized = LatencyReductionConfig()
 }
 
 // MARK: - ShadowPCOptimizer Class
@@ -425,9 +511,14 @@ public class ShadowPCOptimizer {
     // Dynamic adjustment state
     private var lastDynamicAdjustmentTime: Date = Date()
     private let dynamicAdjustmentInterval: TimeInterval = 1.0 // seconds
+    
+    public var effectiveTargetBitrateMbps: Float = 0.0
+    public var currentFoveationStrengthMultiplier: Float = 1.0
+
 
     public init(settings: ShadowPCOptimizationSettings = .defaultSettings) {
         self.settings = settings
+        self.effectiveTargetBitrateMbps = Float(settings.videoConfig.targetMaxBitrateMbps) // Initialize based on initial settings
     }
 
     // Called periodically by ALVRShadowPCIntegration
@@ -489,10 +580,6 @@ public class ShadowPCOptimizer {
         }
     }
     
-    private var effectiveTargetBitrateMbps: Float = 0.0
-    private var currentFoveationStrengthMultiplier: Float = 1.0
-
-
     // Function to generate server-side session parameters as a JSON string
     // This JSON should be applicable to ALVR server's session.json or equivalent C API for settings.
     public func getServerSessionParametersAsJson() -> String? {
@@ -565,13 +652,13 @@ public class ShadowPCOptimizer {
         let totalFovDegreesVertical: Float = 100.0   // Approximate
 
         let centerLayer = foveationSettings.foveationLayers.first ?? EyeTrackedFoveationConfig.FoveationLayer(qualityFactor: 1.0, radiusDegrees: 20.0, transitionDegrees: 5.0)
-        let midLayer = foveationSettings.foveationLayers.count > 1 ? foveationSettings.foveationLayers[1] : EyeTrackedFoveationConfig.FoveationLayer(qualityFactor: 0.5, radiusDegrees: 40.0, transitionDegrees: 10.0)
+        // let midLayer = foveationSettings.foveationLayers.count > 1 ? foveationSettings.foveationLayers[1] : EyeTrackedFoveationConfig.FoveationLayer(qualityFactor: 0.5, radiusDegrees: 40.0, transitionDegrees: 10.0)
         // Peripheral layer quality factor is used for edge_ratio
         let peripheralLayer = foveationSettings.foveationLayers.last ?? EyeTrackedFoveationConfig.FoveationLayer(qualityFactor: 0.25, radiusDegrees: 0.0, transitionDegrees: 0.0)
 
         // Apply dynamic foveation strength multiplier
-        let dynamicCenterQuality = centerLayer.qualityFactor * currentFoveationStrengthMultiplier
-        let dynamicMidQuality = midLayer.qualityFactor * currentFoveationStrengthMultiplier
+        // let dynamicCenterQuality = centerLayer.qualityFactor * currentFoveationStrengthMultiplier
+        // let dynamicMidQuality = midLayer.qualityFactor * currentFoveationStrengthMultiplier
         let dynamicPeripheralQuality = peripheralLayer.qualityFactor * currentFoveationStrengthMultiplier
 
 
